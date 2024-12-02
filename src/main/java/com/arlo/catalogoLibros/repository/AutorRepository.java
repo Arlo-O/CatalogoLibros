@@ -5,8 +5,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface AutorRepository extends JpaRepository<Autor, Long> {
+    Optional<Autor> findByName(String name);
     @Query("SELECT a FROM Autor a WHERE a.birth_year <= :yearElegido AND (a.death_year IS NULL OR a.death_year > :yearElegido)")
     List<Autor> autoresVivosPorYearElegido(Integer yearElegido);
 

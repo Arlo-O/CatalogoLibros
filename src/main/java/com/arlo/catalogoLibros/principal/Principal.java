@@ -1,5 +1,6 @@
 package com.arlo.catalogoLibros.principal;
 
+import com.arlo.catalogoLibros.model.Autor;
 import com.arlo.catalogoLibros.model.DatosLibro;
 import com.arlo.catalogoLibros.model.Libro;
 import com.arlo.catalogoLibros.repository.AutorRepository;
@@ -7,10 +8,7 @@ import com.arlo.catalogoLibros.repository.LibroRepository;
 import com.arlo.catalogoLibros.service.ConsumoAPI;
 import com.arlo.catalogoLibros.service.ConvierteDatos;
 
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 public class Principal {
     private Scanner teclado = new Scanner(System.in);
@@ -19,6 +17,7 @@ public class Principal {
     private ConvierteDatos conversor = new ConvierteDatos();
     private LibroRepository repositorioLibros;
     private AutorRepository repositorioAutores;
+    private Autor autorAGuardar;
 
     public Principal(LibroRepository repositorioLibros, AutorRepository repositorioAutores) {
         this.repositorioLibros = repositorioLibros;
@@ -39,30 +38,35 @@ public class Principal {
                 """;
         while (opcion != 0) {
             System.out.println(menu);
-            opcion = teclado.nextInt();
-            teclado.nextLine();
+            try {
+                opcion = teclado.nextInt();
+                teclado.nextLine();
 
-            switch (opcion) {
-                case 1:
-                    buscarLibroNombre();
-                    break;
-                case 2:
-                    listarLibrosRegistrados();
-                    break;
-                case 3:
-                    listarAutoresRegistrados();
-                    break;
-                case 4:
-                    listarAutoresVivos();
-                    break;
-                case 5:
-                    listarLibrosIdioma();
-                    break;
-                case 0:
-                    System.out.println("Gracias, cerrando la aplicación...");
-                    break;
-                default:
-                    System.out.println("Digite una opción valida");
+                switch (opcion) {
+                    case 1:
+                        buscarLibroNombre();
+                        break;
+                    case 2:
+                        listarLibrosRegistrados();
+                        break;
+                    case 3:
+                        listarAutoresRegistrados();
+                        break;
+                    case 4:
+                        listarAutoresVivos();
+                        break;
+                    case 5:
+                        listarLibrosIdioma();
+                        break;
+                    case 0:
+                        System.out.println("Gracias, cerrando la aplicación...");
+                        break;
+                    default:
+                        System.out.println("Digite una opción valida");
+                }
+            } catch (Exception e) {
+                System.out.println("Ha digitado una entrada invalida...");
+                teclado.nextLine();
             }
         }
     }
@@ -142,9 +146,24 @@ public class Principal {
         System.out.println("Digite el nombre del libro a buscar (en su idioma original): ");
         var libroBuscar = teclado.nextLine();
         Libro libroBuscado = busquedaApi("search=" + libroBuscar.replace(" ", "%20"));
-        System.out.println(libroBuscado + "\n");
-        repositorioAutores.save(libroBuscado.getAutorLibro());
-        repositorioLibros.save(libroBuscado);
+        Optional<Autor> autorExitente = repositorioAutores.findByName(libroBuscado.getAutorLibro().getName());
+
+        if (autorExitente.isPresent()) {
+            autorAGuardar = autorExitente.get();
+        } else {
+            autorAGuardar = libroBuscado.getAutorLibro();
+            repositorioAutores.save(autorAGuardar);
+        }
+
+        libroBuscado.setAutorLibro(autorAGuardar);
+        Optional<Libro> libroExistente = repositorioLibros.findByIdLibro(libroBuscado.getIdLibro());
+
+        if (libroExistente.isPresent()) {
+            System.out.println("El libro ya existe en la base de datos.");
+        } else {
+            repositorioLibros.save(libroBuscado); // Guardar nuevo libro
+            System.out.println("Libro guardado correctamente: " + libroBuscado);
+        }
     }
 
     private Libro busquedaApi(String consultaApi) {
